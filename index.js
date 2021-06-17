@@ -7,6 +7,7 @@ const paperWallets = require('./features/paper-wallets')
 const base58 = require('./utils/base58')
 const bech32 = require('./utils/bech32')
 const scrypt = require('./utils/scrypt-async')
+const Buffer = require('buffer').Buffer
 
 const Module = require('./lib.js')
 
@@ -15,6 +16,7 @@ module.exports = {
   ...keyDerivation,
   ...signing,
   ...paperWallets,
+  Buffer,
   base58,
   bech32,
   scrypt,

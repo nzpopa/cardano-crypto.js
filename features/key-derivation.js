@@ -6,16 +6,31 @@ const pbkdf2 = require('../utils/pbkdf2')
 const Module = require('../lib.js')
 
 async function mnemonicToRootKeypair(mnemonic, derivationScheme) {
-  validateDerivationScheme(derivationScheme)
-
   if (derivationScheme === 1) {
     return mnemonicToRootKeypairV1(mnemonic)
   } else if (derivationScheme === 2) {
     return mnemonicToRootKeypairV2(mnemonic, '')
+  } else if (derivationScheme === 3) {
+    // Note, this is different from the derivation scheme value used by cardano-crypto.hs
+    return mnemonicToRootKeypairV3(mnemonic, '')
   } else {
     throw Error(`Derivation scheme ${derivationScheme} not implemented`)
   }
 }
+
+function mnemonicToRootKeypairV3(mnemonic) {
+  validateMnemonic(mnemonic)
+  const seed = Buffer.from(bip39.mnemonicToSeedSync(mnemonic), 'hex')
+  // It is the same, but if we want to make it encrypted, we can probably change
+  // the cardano-crypto.c file call, and change how we call it
+  return seedToKeypairV1(seed)
+}
+
+function toKadenaPublic(privateKey) {
+  validateBuffer(privateKey, 128)
+  return privateKey.slice(64, 96)
+}
+
 
 function mnemonicToRootKeypairV1(mnemonic) {
   const seed = mnemonicToSeedV1(mnemonic)
@@ -25,7 +40,6 @@ function mnemonicToRootKeypairV1(mnemonic) {
 function mnemonicToSeedV1(mnemonic) {
   validateMnemonic(mnemonic)
   const entropy = Buffer.from(bip39.mnemonicToEntropy(mnemonic), 'hex')
-
   return cborEncodeBuffer(crypto.blake2b(cborEncodeBuffer(entropy), 32))
 }
 
@@ -96,7 +110,8 @@ async function mnemonicToRootKeypairV2(mnemonic, password) {
 
 function mnemonicToSeedV2(mnemonic) {
   validateMnemonic(mnemonic)
-  return Buffer.from(bip39.mnemonicToEntropy(mnemonic), 'hex')
+  let entropy = Buffer.from(bip39.mnemonicToEntropy(mnemonic), 'hex')
+  return entropy;
 }
 
 async function seedToKeypairV2(seed, password) {
@@ -205,6 +220,7 @@ module.exports = {
   derivePublic,
   derivePrivate,
   toPublic,
+  toKadenaPublic,
   _mnemonicToSeedV1: mnemonicToSeedV1,
   _seedToKeypairV1: seedToKeypairV1,
   _seedToKeypairV2: seedToKeypairV2,
