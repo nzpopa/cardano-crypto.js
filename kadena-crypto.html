@@ -23,11 +23,12 @@
        console.log(xprv.toString('hex'))
        console.log(xpub.toString('hex'))
 
-       <!-- var msg = new lib.Buffer('hello there') -->
+       var msg = 'hello there'
+       var sig = lib.kadenaSign(msg, xprv)
+       console.log(sig.toString('hex'))
+       console.log(lib.kadenaVerify(msg, xpub, sig))
+
        <!-- var msg2 = new lib.Buffer('not hello there') -->
-       <!-- var sig = lib.sign(msg, xprv) -->
-       <!-- console.log(sig.toString('hex')) -->
-       <!-- console.log(lib.verify(msg, xpub, sig)) -->
        <!-- console.log(lib.verify(msg2, xpub, sig)) -->
 
      });
