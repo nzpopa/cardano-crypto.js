@@ -26,12 +26,6 @@ function mnemonicToRootKeypairV3(mnemonic) {
   return seedToKeypairV1(seed)
 }
 
-function toKadenaPublic(privateKey) {
-  validateBuffer(privateKey, 128)
-  return privateKey.slice(64, 96)
-}
-
-
 function mnemonicToRootKeypairV1(mnemonic) {
   const seed = mnemonicToSeedV1(mnemonic)
   return seedToKeypairV1(seed)
@@ -220,7 +214,6 @@ module.exports = {
   derivePublic,
   derivePrivate,
   toPublic,
-  toKadenaPublic,
   _mnemonicToSeedV1: mnemonicToSeedV1,
   _seedToKeypairV1: seedToKeypairV1,
   _seedToKeypairV2: seedToKeypairV2,

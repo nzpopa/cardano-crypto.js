@@ -1,37 +1,35 @@
 <html>
 <head>
-  <script src="cardano-crypto.js"></script>
+  <script src="kadena-crypto.js"></script>
 </head>
 <body>
-  <h1>Cardano Test</h1>
+  <h1>Kadena Test</h1>
   <button id="register" onclick="onRegister()">Register</button>
   <button id="login" onclick="onLogin()">Login</button>
   <script>
     var recovery = "welcome coffee sketch silver cube bundle wink endless six grief town learn"
 
     const sampleHardenedIndex = 0x80000000
-    const index = 0x01
-    const generationScheme = 3
-    const derivationScheme = 2
-    
-    // ROOT 
+    const index = 0x00
+    // ROOT
     // Second arg here is supposedly the derivationScheme BUT, its not actually, instead its the
     // generation scheme, which is equivalent to cardano-crypto's "generate" and "generateNew". We
     // use cardano-cryptos "generate" which has number '3' in this case
-     var rootkey = lib.mnemonicToRootKeypair(recovery, generationScheme);
+     var rootkey = lib.kadenaMnemonicToRootKeypair(recovery);
      rootkey.then(function(root) {
-       const xprv = lib.derivePrivate(root, sampleHardenedIndex | index, derivationScheme)
-       const xpub = lib.toKadenaPublic(xprv)
+       console.log(root.toString('hex'))
+
+       const [xprv, xpub] = lib.kadenaGenKeypair(root, sampleHardenedIndex | index)
        console.log(xprv.toString('hex'))
        console.log(xpub.toString('hex'))
 
-       var msg = new lib.Buffer('hello there')
-       var msg2 = new lib.Buffer('not hello there')
-       var sig = lib.sign(msg, xprv)
-       console.log(sig.toString('hex'))
-       console.log(lib.verify(msg, xpub, sig))
-       console.log(lib.verify(msg2, xpub, sig))
-           
+       <!-- var msg = new lib.Buffer('hello there') -->
+       <!-- var msg2 = new lib.Buffer('not hello there') -->
+       <!-- var sig = lib.sign(msg, xprv) -->
+       <!-- console.log(sig.toString('hex')) -->
+       <!-- console.log(lib.verify(msg, xpub, sig)) -->
+       <!-- console.log(lib.verify(msg2, xpub, sig)) -->
+
      });
   </script>
 </body>
