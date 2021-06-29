@@ -7,31 +7,30 @@
   <button id="register" onclick="onRegister()">Register</button>
   <button id="login" onclick="onLogin()">Login</button>
   <script>
-    var recovery = "welcome coffee sketch silver cube bundle wink endless six grief town learn"
+    const recovery = lib.kadenaGenMnemonic()
+    console.log(recovery)
 
     const sampleHardenedIndex = 0x80000000
     const index = 0x00
-    // ROOT
-    // Second arg here is supposedly the derivationScheme BUT, its not actually, instead its the
-    // generation scheme, which is equivalent to cardano-crypto's "generate" and "generateNew". We
-    // use cardano-cryptos "generate" which has number '3' in this case
-     var rootkey = lib.kadenaMnemonicToRootKeypair(recovery);
-     rootkey.then(function(root) {
-       console.log(root.toString('hex'))
+    var root = lib.kadenaMnemonicToRootKeypair(recovery);
+    console.log(root.toString('hex'))
 
-       const [xprv, xpub] = lib.kadenaGenKeypair(root, sampleHardenedIndex | index)
-       console.log(xprv.toString('hex'))
-       console.log(xpub.toString('hex'))
+    // I'd print out the hex forms here but apparently there isn't a trivial way 
+    // to convert ArrayBuffers or Uint8Array to hex strings on the browser?!
+    // Buffer offers this, and our underying nodejs code uses Buffer, but then
+    // it gets browserified and we don't expose it in the api
+    const [xprvRaw, xpubRaw] = lib.kadenaGenKeypair(root, sampleHardenedIndex | index)
 
-       var msg = 'hello there'
-       var sig = lib.kadenaSign(msg, xprv)
-       console.log(sig.toString('hex'))
-       console.log(lib.kadenaVerify(msg, xpub, sig))
+    const xprv = new Uint8Array(xprvRaw)
+    const xpub = new Uint8Array(xpubRaw)
 
-       <!-- var msg2 = new lib.Buffer('not hello there') -->
-       <!-- console.log(lib.verify(msg2, xpub, sig)) -->
+    var msg = 'hello there'
+    var sig = lib.kadenaSign(msg, xprv)
+    console.log(lib.kadenaVerify(msg, xpub, sig))
 
-     });
+    var msg2 = "not hello there"
+    console.log(lib.kadenaVerify(msg2, xpub, sig))
+
   </script>
 </body>
 </html>

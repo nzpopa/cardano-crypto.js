@@ -211,6 +211,7 @@ function cborEncodeBuffer(input) {
 
 module.exports = {
   mnemonicToRootKeypair,
+  mnemonicToRootKeypairV3,
   derivePublic,
   derivePrivate,
   toPublic,

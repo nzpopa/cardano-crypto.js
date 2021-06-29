@@ -3,8 +3,8 @@ const signing = require("./signing")
 const derivation = require("./key-derivation")
 const Module = require('../lib.js')
 
-async function kadenaMnemonicToRootKeypair(mnemonic) {
-  return derivation.mnemonicToRootKeypair(mnemonic, 3)
+function kadenaMnemonicToRootKeypair(mnemonic) {
+  return derivation.mnemonicToRootKeypairV3(mnemonic, '')
 }
 
 function kadenaGenMnemonic() {
@@ -25,6 +25,12 @@ function kadenaSign(msg, xprv) {
   return signing.sign(msgBuf, xprvBuf).buffer;
 }
 
+function kadenaGetPublic(prvKey) {
+  const prvBuffer = Buffer.from(prvKey)
+  const xpub = new Buffer(prvBuffer.slice(64, 96))
+  return xpub.buffer;
+}
+ 
 function kadenaVerify(msg, publicKey, sig) {
   const msgBuf = Buffer.from(msg);
   const pubKeyBuf = Buffer.from(publicKey);
@@ -36,6 +42,7 @@ module.exports = {
   kadenaGenMnemonic,
   kadenaMnemonicToRootKeypair,
   kadenaGenKeypair,
+  kadenaGetPublic,
   kadenaSign,
   kadenaVerify
 }
