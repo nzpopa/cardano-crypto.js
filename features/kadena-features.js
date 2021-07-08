@@ -3,26 +3,37 @@ const signing = require("./signing")
 const derivation = require("./key-derivation")
 const Module = require('../lib.js')
 
-function kadenaMnemonicToRootKeypair(mnemonic) {
-  return derivation.mnemonicToRootKeypairV3(mnemonic, '')
+function kadenaMnemonicToRootKeypair(pwd, mnemonic) {
+  const pwdBuf = Buffer.from(pwd)
+  return derivation.mnemonicToRootKeypairV3(mnemonic, pwdBuf)
+}
+
+function kadenaChangePassword(key, oldPwd, newPwd) {
+  const keyBuf = Buffer.from(key)
+  const oldPwdBuf = Buffer.from(oldPwd)
+  const newPwdBuf = Buffer.from(newPwd)
+  const newPrv = derivation.changePassword(keyBuf, oldPwdBuf, newPwdBuf)
+  return newPrv.buffer;
 }
 
 function kadenaGenMnemonic() {
   return bip39.generateMnemonic()
 }
 
-function kadenaGenKeypair(root, index) {
+function kadenaGenKeypair(pwd, root, index) {
   const derivationScheme = 2;
   const rootBuffer = Buffer.from(root)
-  const xprv = derivation.derivePrivate(rootBuffer, index, derivationScheme);
+  const pwdBuf = Buffer.from(pwd)
+  const xprv = derivation.derivePrivate(pwdBuf, rootBuffer, index, derivationScheme);
   const xpub = new Buffer(xprv.slice(64, 96))
   return [xprv.buffer, xpub.buffer];
 }
 
-function kadenaSign(msg, xprv) {
+function kadenaSign(pwd, msg, xprv) {
   const xprvBuf = Buffer.from(xprv);
   const msgBuf = Buffer.from(msg)
-  return signing.sign(msgBuf, xprvBuf).buffer;
+  const pwdBuf = Buffer.from(pwd)
+  return signing.sign(msgBuf, xprvBuf, pwdBuf).buffer;
 }
 
 function kadenaGetPublic(prvKey) {
@@ -44,5 +55,6 @@ module.exports = {
   kadenaGenKeypair,
   kadenaGetPublic,
   kadenaSign,
-  kadenaVerify
+  kadenaVerify,
+  kadenaChangePassword
 }
