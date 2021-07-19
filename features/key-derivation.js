@@ -5,6 +5,14 @@ const crypto = require("./crypto-primitives")
 const pbkdf2 = require('../utils/pbkdf2')
 const Module = require('../lib.js')
 
+function genMnemonic() {
+  return bip39.generateMnemonic()
+}
+
+function checkMnemonic(mnem) {
+  return bip39.validateMnemonic(mnem);
+}
+
 async function mnemonicToRootKeypair(mnemonic, derivationScheme) {
   if (derivationScheme === 1) {
     return mnemonicToRootKeypairV1(mnemonic)
@@ -257,6 +265,8 @@ module.exports = {
   derivePrivate,
   toPublic,
   changePassword,
+  genMnemonic,
+  checkMnemonic,
   _mnemonicToSeedV1: mnemonicToSeedV1,
   _seedToKeypairV1: seedToKeypairV1,
   _seedToKeypairV2: seedToKeypairV2,

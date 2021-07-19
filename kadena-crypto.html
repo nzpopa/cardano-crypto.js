@@ -10,6 +10,10 @@
     const recovery = lib.kadenaGenMnemonic()
     console.log(recovery)
 
+    console.log("Is valid mnemonic (expecting 'true'): ", lib.kadenaCheckMnemonic(recovery));
+    console.log("Is valid mnemonic (expecting 'false'): ", lib.kadenaCheckMnemonic(recovery.substring(0, recovery.lastIndexOf(" "))));
+    
+
     const sampleHardenedIndex = 0x80000000
     const index = 0x00
     const pwd = "my-pwd"

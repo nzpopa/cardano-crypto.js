@@ -1,4 +1,3 @@
-const bip39 = require('bip39')
 const signing = require("./signing")
 const derivation = require("./key-derivation")
 const Module = require('../lib.js')
@@ -17,7 +16,11 @@ function kadenaChangePassword(key, oldPwd, newPwd) {
 }
 
 function kadenaGenMnemonic() {
-  return bip39.generateMnemonic()
+  return derivation.genMnemonic();
+}
+
+function kadenaCheckMnemonic(mnem) {
+  return derivation.checkMnemonic(mnem);
 }
 
 function kadenaGenKeypair(pwd, root, index) {
@@ -51,6 +54,7 @@ function kadenaVerify(msg, publicKey, sig) {
 
 module.exports = {
   kadenaGenMnemonic,
+  kadenaCheckMnemonic,
   kadenaMnemonicToRootKeypair,
   kadenaGenKeypair,
   kadenaGetPublic,

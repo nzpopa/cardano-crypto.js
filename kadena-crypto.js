@@ -220,7 +220,6 @@ module.exports = {
 }).call(this,require("buffer").Buffer)
 },{"../lib.js":6,"../utils/validation":40,"buffer":44}],2:[function(require,module,exports){
 (function (Buffer){
-const bip39 = require('bip39')
 const signing = require("./signing")
 const derivation = require("./key-derivation")
 const Module = require('../lib.js')
@@ -239,7 +238,11 @@ function kadenaChangePassword(key, oldPwd, newPwd) {
 }
 
 function kadenaGenMnemonic() {
-  return bip39.generateMnemonic()
+  return derivation.genMnemonic();
+}
+
+function kadenaCheckMnemonic(mnem) {
+  return derivation.checkMnemonic(mnem);
 }
 
 function kadenaGenKeypair(pwd, root, index) {
@@ -273,6 +276,7 @@ function kadenaVerify(msg, publicKey, sig) {
 
 module.exports = {
   kadenaGenMnemonic,
+  kadenaCheckMnemonic,
   kadenaMnemonicToRootKeypair,
   kadenaGenKeypair,
   kadenaGetPublic,
@@ -282,7 +286,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"../lib.js":6,"./key-derivation":3,"./signing":4,"bip39":8,"buffer":44}],3:[function(require,module,exports){
+},{"../lib.js":6,"./key-derivation":3,"./signing":4,"buffer":44}],3:[function(require,module,exports){
 (function (Buffer){
 const bip39 = require('bip39')
 
@@ -290,6 +294,14 @@ const {validateBuffer, validateDerivationIndex, validateDerivationScheme, valida
 const crypto = require("./crypto-primitives")
 const pbkdf2 = require('../utils/pbkdf2')
 const Module = require('../lib.js')
+
+function genMnemonic() {
+  return bip39.generateMnemonic()
+}
+
+function checkMnemonic(mnem) {
+  return bip39.validateMnemonic(mnem);
+}
 
 async function mnemonicToRootKeypair(mnemonic, derivationScheme) {
   if (derivationScheme === 1) {
@@ -543,6 +555,8 @@ module.exports = {
   derivePrivate,
   toPublic,
   changePassword,
+  genMnemonic,
+  checkMnemonic,
   _mnemonicToSeedV1: mnemonicToSeedV1,
   _seedToKeypairV1: seedToKeypairV1,
   _seedToKeypairV2: seedToKeypairV2,
