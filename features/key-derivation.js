@@ -5,16 +5,31 @@ const crypto = require("./crypto-primitives")
 const pbkdf2 = require('../utils/pbkdf2')
 const Module = require('../lib.js')
 
-async function mnemonicToRootKeypair(mnemonic, derivationScheme) {
-  validateDerivationScheme(derivationScheme)
+function genMnemonic() {
+  return bip39.generateMnemonic()
+}
 
+function checkMnemonic(mnem) {
+  return bip39.validateMnemonic(mnem);
+}
+
+async function mnemonicToRootKeypair(mnemonic, derivationScheme) {
   if (derivationScheme === 1) {
     return mnemonicToRootKeypairV1(mnemonic)
   } else if (derivationScheme === 2) {
     return mnemonicToRootKeypairV2(mnemonic, '')
+  } else if (derivationScheme === 3) {
+    // Note, this is different from the derivation scheme value used by cardano-crypto.hs
+    return mnemonicToRootKeypairV3(mnemonic, '')
   } else {
     throw Error(`Derivation scheme ${derivationScheme} not implemented`)
   }
+}
+
+function mnemonicToRootKeypairV3(mnemonic, pwd) {
+  validateMnemonic(mnemonic)
+  const seed = Buffer.from(bip39.mnemonicToSeedSync(mnemonic), 'hex')
+  return seedToKeypairV1(pwd, seed)
 }
 
 function mnemonicToRootKeypairV1(mnemonic) {
@@ -25,11 +40,10 @@ function mnemonicToRootKeypairV1(mnemonic) {
 function mnemonicToSeedV1(mnemonic) {
   validateMnemonic(mnemonic)
   const entropy = Buffer.from(bip39.mnemonicToEntropy(mnemonic), 'hex')
-
   return cborEncodeBuffer(crypto.blake2b(cborEncodeBuffer(entropy), 32))
 }
 
-function seedToKeypairV1(seed) {
+function seedToKeypairV1(pwd, seed) {
   let result
   for (let i = 1; result === undefined && i <= 1000; i++) {
     try {
@@ -37,7 +51,7 @@ function seedToKeypairV1(seed) {
       const tempSeed = digest.slice(0, 32)
       const chainCode = digest.slice(32, 64)
 
-      result = trySeedChainCodeToKeypairV1(tempSeed, chainCode)
+      result = trySeedChainCodeToKeypairV1(pwd, tempSeed, chainCode)
 
     } catch (e) {
       if (e.name === 'InvalidKeypair') {
@@ -57,10 +71,14 @@ function seedToKeypairV1(seed) {
   return result
 }
 
-function trySeedChainCodeToKeypairV1(seed, chainCode) {
+function trySeedChainCodeToKeypairV1(pwd, seed, chainCode) {
   validateBuffer(seed, 32)
   validateBuffer(chainCode, 32)
+  validateBuffer(pwd)
 
+  const pwdLen = pwd.length
+  const pwdArrPtr = Module._malloc(pwdLen)
+  const pwdArr = new Uint8Array(Module.HEAPU8.buffer, pwdArrPtr, pwdLen)
   const seedArrPtr = Module._malloc(32)
   const seedArr = new Uint8Array(Module.HEAPU8.buffer, seedArrPtr, 32)
   const chainCodeArrPtr = Module._malloc(32)
@@ -68,11 +86,13 @@ function trySeedChainCodeToKeypairV1(seed, chainCode) {
   const keypairArrPtr = Module._malloc(128)
   const keypairArr = new Uint8Array(Module.HEAPU8.buffer, keypairArrPtr, 128)
 
+  pwdArr.set(pwd)
   seedArr.set(seed)
   chainCodeArr.set(chainCode)
 
-  const returnCode = Module._emscripten_wallet_secret_from_seed(seedArrPtr, chainCodeArrPtr, keypairArrPtr)
+  const returnCode = Module._emscripten_wallet_secret_from_seed(pwdArrPtr, pwdLen, seedArrPtr, chainCodeArrPtr, keypairArrPtr)
 
+  Module._free(pwdArrPtr)
   Module._free(seedArrPtr)
   Module._free(chainCodeArrPtr)
   Module._free(keypairArrPtr)
@@ -96,7 +116,8 @@ async function mnemonicToRootKeypairV2(mnemonic, password) {
 
 function mnemonicToSeedV2(mnemonic) {
   validateMnemonic(mnemonic)
-  return Buffer.from(bip39.mnemonicToEntropy(mnemonic), 'hex')
+  let entropy = Buffer.from(bip39.mnemonicToEntropy(mnemonic), 'hex')
+  return entropy;
 }
 
 async function seedToKeypairV2(seed, password) {
@@ -129,23 +150,60 @@ function toPublic(privateKey) {
   return Buffer.from(publicKeyArr)
 }
 
-function derivePrivate(parentKey, index, derivationScheme) {
+function derivePrivate(pwd, parentKey, index, derivationScheme) {
   validateBuffer(parentKey, 128)
   validateDerivationIndex(index)
   validateDerivationScheme(derivationScheme)
+  validateBuffer(pwd)
 
+  const pwdLen = pwd.length
+  const pwdArrPtr = Module._malloc(pwdLen)
+  const pwdArr = new Uint8Array(Module.HEAPU8.buffer, pwdArrPtr, pwdLen)
   const parentKeyArrPtr = Module._malloc(128)
   const parentKeyArr = new Uint8Array(Module.HEAPU8.buffer, parentKeyArrPtr, 128)
   const childKeyArrPtr = Module._malloc(128)
   const childKeyArr = new Uint8Array(Module.HEAPU8.buffer, childKeyArrPtr, 128)
 
+  pwdArr.set(pwd)
   parentKeyArr.set(parentKey)
 
-  Module._emscripten_derive_private(parentKeyArrPtr, index, childKeyArrPtr, derivationScheme)
+  Module._emscripten_derive_private(pwdArrPtr, pwdLen, parentKeyArrPtr, index, childKeyArrPtr, derivationScheme)
   Module._free(parentKeyArrPtr)
   Module._free(childKeyArrPtr)
 
   return Buffer.from(childKeyArr)
+}
+
+function changePassword(inputKey, oldPwd, newPwd) {
+  validateBuffer(inputKey, 128)
+  validateBuffer(oldPwd)
+  validateBuffer(newPwd)
+
+  const oldPwdLen = oldPwd.length
+  const oldPwdArrPtr = Module._malloc(oldPwdLen)
+  const oldPwdArr = new Uint8Array(Module.HEAPU8.buffer, oldPwdArrPtr, oldPwdLen)
+
+  const newPwdLen = newPwd.length
+  const newPwdArrPtr = Module._malloc(newPwdLen)
+  const newPwdArr = new Uint8Array(Module.HEAPU8.buffer, newPwdArrPtr, newPwdLen)
+
+  const inputKeyArrPtr = Module._malloc(128)
+  const inputKeyArr = new Uint8Array(Module.HEAPU8.buffer, inputKeyArrPtr, 128)
+
+  const newKeyArrPtr = Module._malloc(128)
+  const newKeyArr = new Uint8Array(Module.HEAPU8.buffer, newKeyArrPtr, 128)
+
+  oldPwdArr.set(oldPwd)
+  newPwdArr.set(newPwd)
+  inputKeyArr.set(inputKey)
+
+  Module._emscripten_wallet_change_pass(inputKeyArrPtr, oldPwdArrPtr, oldPwdLen, newPwdArrPtr, newPwdLen, newKeyArrPtr)
+  Module._free(oldPwdArrPtr)
+  Module._free(newPwdArrPtr)
+  Module._free(inputKeyArrPtr)
+  Module._free(newKeyArrPtr)
+
+  return Buffer.from(newKeyArr)
 }
 
 function derivePublic(parentExtPubKey, index, derivationScheme) {
@@ -202,9 +260,13 @@ function cborEncodeBuffer(input) {
 
 module.exports = {
   mnemonicToRootKeypair,
+  mnemonicToRootKeypairV3,
   derivePublic,
   derivePrivate,
   toPublic,
+  changePassword,
+  genMnemonic,
+  checkMnemonic,
   _mnemonicToSeedV1: mnemonicToSeedV1,
   _seedToKeypairV1: seedToKeypairV1,
   _seedToKeypairV2: seedToKeypairV2,
